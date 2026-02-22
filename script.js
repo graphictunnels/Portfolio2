@@ -446,13 +446,11 @@ if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
 
 // Re-enable ScrollSmoother with safe gating
 let smoother;
-const isTouchDeviceForScroll = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
-const isMobileViewportForScroll = window.matchMedia('(max-width: 768px)').matches;
 const shouldUseSmoother =
   typeof gsap !== 'undefined' &&
   typeof ScrollSmoother !== 'undefined' &&
-  !isTouchDeviceForScroll &&
-  !isMobileViewportForScroll;
+  !!document.querySelector('#smooth-wrapper') &&
+  !!document.querySelector('#smooth-content');
 
 if (shouldUseSmoother) {
   gsap.registerPlugin(ScrollSmoother);
@@ -472,9 +470,14 @@ if (shouldUseSmoother) {
 } else {
   console.warn('ScrollSmoother not available — using native scroll');
   document.documentElement.classList.remove('smoother-active');
+  const smoothWrapper = document.querySelector('#smooth-wrapper');
+  if (smoothWrapper) {
+    smoothWrapper.style.overflowY = 'visible';
+    smoothWrapper.style.height = 'auto';
+  }
 }
 
-const scrollTriggerRoot = smoother ? '#smooth-wrapper' : document.documentElement;
+const scrollTriggerRoot = '#smooth-wrapper';
 const isIndexPage =
   document.body?.dataset?.page === 'index' ||
   /(?:^|\/)index(?:-es)?\.html$/i.test(window.location.pathname) ||
