@@ -446,7 +446,15 @@ if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
 
 // Re-enable ScrollSmoother with safe gating
 let smoother;
-if (typeof gsap !== 'undefined' && typeof ScrollSmoother !== 'undefined') {
+const isTouchDeviceForScroll = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+const isMobileViewportForScroll = window.matchMedia('(max-width: 768px)').matches;
+const shouldUseSmoother =
+  typeof gsap !== 'undefined' &&
+  typeof ScrollSmoother !== 'undefined' &&
+  !isTouchDeviceForScroll &&
+  !isMobileViewportForScroll;
+
+if (shouldUseSmoother) {
   gsap.registerPlugin(ScrollSmoother);
   try {
     smoother = ScrollSmoother.create({
@@ -465,6 +473,8 @@ if (typeof gsap !== 'undefined' && typeof ScrollSmoother !== 'undefined') {
   console.warn('ScrollSmoother not available — using native scroll');
   document.documentElement.classList.remove('smoother-active');
 }
+
+const scrollTriggerRoot = smoother ? '#smooth-wrapper' : document.body;
 
 
 const cursor = document.getElementById("cursor");
@@ -749,7 +759,7 @@ if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
         y: i => text.chars[i].dataset.toY,
         ease: "none",
         scrollTrigger: {
-          trigger: "#smooth-wrapper",
+          trigger: scrollTriggerRoot,
           start: "top top",
           end: "100%",
           scrub: true
@@ -809,7 +819,7 @@ if (window.location.pathname.includes('index.html') || window.location.pathname 
         ease: "none",
         immediateRender: false,
         scrollTrigger: {
-          trigger: "#smooth-wrapper",
+          trigger: scrollTriggerRoot,
           start: "top top",
           end: isMobile ? "8%" : "80%", // animación más corta en móvil
           scrub: true
@@ -842,7 +852,7 @@ if (document.querySelector('.header-down-arrow')) {
       opacity: 0,
       ease: 'none',
       scrollTrigger: {
-        trigger: '#smooth-wrapper',
+        trigger: scrollTriggerRoot,
         start: 'top 0%',
         end: isMobile ? '5%' : '35%', // más rápido en móvil
         scrub: true
@@ -861,7 +871,7 @@ if (document.querySelector('.subtitular')) {
       opacity: 0,
       ease: 'none',
       scrollTrigger: {
-        trigger: '#smooth-wrapper',
+        trigger: scrollTriggerRoot,
         start: 'top 0%',
         end: '35%',
         scrub: true
@@ -878,7 +888,7 @@ if (document.querySelector('.titular')) {
       opacity: 0,
       ease: 'none',
       scrollTrigger: {
-        trigger: '#smooth-wrapper',
+        trigger: scrollTriggerRoot,
         start: 'top -10%',
         end: '45%',
         scrub: true
@@ -940,7 +950,7 @@ if (document.querySelector('.container')) {
       opacity: 1,
       ease: "none",
       scrollTrigger: {
-        trigger: "#smooth-wrapper",
+        trigger: scrollTriggerRoot,
         start: "top -10%",
         end: "15%",
         scrub: true
