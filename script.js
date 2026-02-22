@@ -440,8 +440,9 @@ if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
 // Re-enable ScrollSmoother with safe gating
 let smoother;
 const isMobileViewport = window.matchMedia('(max-width: 768px)').matches;
+const enableScrollEffects = !isMobileViewport;
 const shouldUseSmoother =
-  !isMobileViewport &&
+  enableScrollEffects &&
   typeof gsap !== 'undefined' &&
   typeof ScrollSmoother !== 'undefined' &&
   !!document.querySelector('#smooth-wrapper') &&
@@ -727,14 +728,14 @@ function updateListOpacities() {
 }
 
 // Start the opacity update loop
-if (!isMobileViewport) {
+if (enableScrollEffects) {
   updateListOpacities();
 }
 
 
 
 // If core GSAP and ScrollTrigger are available, run animations
-if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined' && enableScrollEffects) {
 
   //LETRAS LOCAS
 
@@ -797,47 +798,12 @@ if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
 // }
 
 
-// COLOR FONDO - animate CSS variables using their computed values (responsive for mobile)
-if (isIndexPage) {
-  const rootStyles = getComputedStyle(document.documentElement);
-  const startBg = rootStyles.getPropertyValue('--bg').trim() || '#ffffff';
-  const accentColor = rootStyles.getPropertyValue('--accent').trim() || '#0d6efd';
-
-  // Detect mobile
-  const isMobile = window.innerWidth <= 768;
-
-  // Puedes personalizar el color final en móvil si lo deseas:
-  const mobileAccent = accentColor; // o por ejemplo: '#f7e8ff'
-
-  if (document.documentElement) {
-    gsap.set(document.documentElement, { '--bg': startBg });
-    gsap.fromTo(
-      document.documentElement,
-      { '--bg': startBg },
-      {
-        '--bg': isMobile ? mobileAccent : accentColor,
-        ease: "none",
-        immediateRender: false,
-        scrollTrigger: {
-          trigger: scrollTriggerRoot,
-          start: "top top",
-          end: isMobile ? "8%" : "80%", // animación más corta en móvil
-          scrub: true
-        }
-      }
-    );
-  }
-}
-
 // EFECTOS ESPECÍFICOS DE INDEX.HTML
 console.log('Current pathname:', window.location.pathname);
 console.log('Is index page:', isIndexPage);
 
 if (isIndexPage) {
   console.log('Executing index-specific effects...');
-  
-  // Definir accent color para efectos de índice
-  const accentColor = '#0d6efd';
   
   // Verificar que el elemento fijo existe
   const fijoElement = document.querySelector('#fijo');
@@ -959,27 +925,6 @@ if (document.querySelector('.container')) {
   );
 }
 
-// Fade background back to start color after bubbles (reversible with scrub)
-// Only applies on desktop (>768px)
-if (window.innerWidth > 768 && document.querySelector('.container')) {
-  gsap.fromTo(document.documentElement, 
-    { '--bg': accentColor },
-    { 
-      ease: "none",
-      immediateRender: false,
-      scrollTrigger: {
-        trigger: ".container",
-        start: "bottom 80%",
-        end: "bottom 20%",
-        scrub: true
-      }
-    }
-  );
-}
-
-
-
-
 // ESTRELLA SCROLL
 
 gsap.registerPlugin(ScrollTrigger);
@@ -1074,7 +1019,7 @@ if (svg) {
 } // FIN DE EFECTOS ESPECÍFICOS DE INDEX.HTML
 
 // Refresh ScrollTrigger después de inicialización
-if (typeof ScrollTrigger !== 'undefined') {
+if (typeof ScrollTrigger !== 'undefined' && enableScrollEffects) {
   // Refresh after smoother so pins/triggers recalc correctly
   setTimeout(() => ScrollTrigger.refresh(), 0);
 
