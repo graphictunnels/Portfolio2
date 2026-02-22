@@ -474,7 +474,12 @@ if (shouldUseSmoother) {
   document.documentElement.classList.remove('smoother-active');
 }
 
-const scrollTriggerRoot = smoother ? '#smooth-wrapper' : document.body;
+const scrollTriggerRoot = smoother ? '#smooth-wrapper' : document.documentElement;
+const isIndexPage =
+  document.body?.dataset?.page === 'index' ||
+  /(?:^|\/)index(?:-es)?\.html$/i.test(window.location.pathname) ||
+  window.location.pathname === '/' ||
+  window.location.pathname === '';
 
 
 const cursor = document.getElementById("cursor");
@@ -546,11 +551,6 @@ if (winkGif) {
         winkGif.src = staticSrc;
         isPlaying = false;
         // Navegar a index solo si NO estamos ya en index
-        const isIndexPage = (
-          window.location.pathname.includes('index.html') ||
-          window.location.pathname === '/' ||
-          window.location.pathname === ''
-        );
         if (!isIndexPage) {
           navigateTo('index.html');
         }
@@ -798,7 +798,7 @@ if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
 
 
 // COLOR FONDO - animate CSS variables using their computed values (responsive for mobile)
-if (window.location.pathname.includes('index.html') || window.location.pathname === '/') {
+if (isIndexPage) {
   const rootStyles = getComputedStyle(document.documentElement);
   const startBg = rootStyles.getPropertyValue('--bg').trim() || '#ffffff';
   const accentColor = rootStyles.getPropertyValue('--accent').trim() || '#0d6efd';
@@ -831,9 +831,9 @@ if (window.location.pathname.includes('index.html') || window.location.pathname 
 
 // EFECTOS ESPECÍFICOS DE INDEX.HTML
 console.log('Current pathname:', window.location.pathname);
-console.log('Is index page:', window.location.pathname.includes('index.html') || window.location.pathname === '/' || window.location.pathname === '');
+console.log('Is index page:', isIndexPage);
 
-if (window.location.pathname.includes('index.html') || window.location.pathname === '/' || window.location.pathname === '') {
+if (isIndexPage) {
   console.log('Executing index-specific effects...');
   
   // Definir accent color para efectos de índice
@@ -1077,6 +1077,18 @@ if (svg) {
 if (typeof ScrollTrigger !== 'undefined') {
   // Refresh after smoother so pins/triggers recalc correctly
   setTimeout(() => ScrollTrigger.refresh(), 0);
+
+  let refreshTimer;
+  const safeRefresh = () => {
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(() => ScrollTrigger.refresh(), 120);
+  };
+
+  window.addEventListener('resize', safeRefresh, { passive: true });
+  window.addEventListener('orientationchange', safeRefresh, { passive: true });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', safeRefresh, { passive: true });
+  }
 }
  
 // COPY EMAIL BUTTON
