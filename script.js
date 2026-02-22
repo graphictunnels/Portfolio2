@@ -367,10 +367,18 @@ if ('scrollRestoration' in history) {
   history.scrollRestoration = 'manual';
 }
 
+// Forzar scroll al top al cargar la página
+window.addEventListener('beforeunload', function() {
+  window.scrollTo(0, 0);
+});
+
 window.addEventListener('load', function() {
-  if (!window.location.hash) {
-    window.scrollTo(0, 0);
-  }
+  window.scrollTo(0, 0);
+});
+
+// También al cambiar de página
+document.addEventListener('DOMContentLoaded', function() {
+  window.scrollTo(0, 0);
 });
 
 // Navegación unificada (siempre hace fade-in antes de navegar)
@@ -434,15 +442,13 @@ console.log('ScrollSmoother loaded?', typeof ScrollSmoother !== 'undefined');
 
 if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
-  ScrollTrigger.defaults({ invalidateOnRefresh: true });
 }
 
 // Re-enable ScrollSmoother with safe gating
 let smoother;
 const isMobileViewport = window.matchMedia('(max-width: 768px)').matches;
-const enableScrollEffects = !isMobileViewport;
 const shouldUseSmoother =
-  enableScrollEffects &&
+  !isMobileViewport &&
   typeof gsap !== 'undefined' &&
   typeof ScrollSmoother !== 'undefined' &&
   !!document.querySelector('#smooth-wrapper') &&
@@ -473,12 +479,25 @@ if (shouldUseSmoother) {
   }
 }
 
-const scrollTriggerRoot = isMobileViewport ? document.body : '#smooth-wrapper';
+const scrollTriggerRoot = isMobileViewport ? window : '#smooth-wrapper';
 const isIndexPage =
   document.body?.dataset?.page === 'index' ||
   /(?:^|\/)index(?:-es)?\.html$/i.test(window.location.pathname) ||
   window.location.pathname === '/' ||
   window.location.pathname === '';
+
+if (isIndexPage && isMobileViewport) {
+  const mobileGifContainer = document.querySelector('.mobile-run4-gif-container');
+  const smoothContent = document.querySelector('#smooth-content');
+  if (mobileGifContainer && smoothContent && mobileGifContainer.parentElement !== smoothContent) {
+    smoothContent.insertBefore(mobileGifContainer, smoothContent.firstChild);
+  }
+
+  const content4Section = document.querySelector('.content4');
+  if (content4Section) {
+    content4Section.remove();
+  }
+}
 
 
 const cursor = document.getElementById("cursor");
@@ -728,22 +747,23 @@ function updateListOpacities() {
 }
 
 // Start the opacity update loop
-if (enableScrollEffects) {
-  updateListOpacities();
-}
+updateListOpacities();
 
 
 
 // If core GSAP and ScrollTrigger are available, run animations
-if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined' && enableScrollEffects) {
+if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
 
   //LETRAS LOCAS
 
   // Only run SplitType if #heading exists (index page)
   const heading = document.querySelector('#heading');
+  const isMobileSplit = window.matchMedia('(max-width: 768px)').matches;
   if (heading) {
-    const text = new SplitType("#heading", { types: "chars" });
     gsap.set("#heading", { autoAlpha: 1 });
+  }
+  if (heading && !isMobileSplit) {
+    const text = new SplitType("#heading", { types: "chars" });
 
     const vw = window.innerWidth;
     const vh = window.innerHeight;
@@ -798,12 +818,47 @@ if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined' && enabl
 // }
 
 
+// COLOR FONDO - animate CSS variables using their computed values (responsive for mobile)
+if (isIndexPage) {
+  const rootStyles = getComputedStyle(document.documentElement);
+  const startBg = rootStyles.getPropertyValue('--bg').trim() || '#ffffff';
+  const accentColor = rootStyles.getPropertyValue('--accent').trim() || '#0d6efd';
+
+  // Detect mobile
+  const isMobile = window.innerWidth <= 768;
+
+  // Puedes personalizar el color final en móvil si lo deseas:
+  const mobileAccent = accentColor; // o por ejemplo: '#f7e8ff'
+
+  if (document.documentElement) {
+    gsap.set(document.documentElement, { '--bg': startBg });
+    gsap.fromTo(
+      document.documentElement,
+      { '--bg': startBg },
+      {
+        '--bg': isMobile ? mobileAccent : accentColor,
+        ease: "none",
+        immediateRender: false,
+        scrollTrigger: {
+          trigger: scrollTriggerRoot,
+          start: "top top",
+          end: isMobile ? "8%" : "80%", // animación más corta en móvil
+          scrub: true
+        }
+      }
+    );
+  }
+}
+
 // EFECTOS ESPECÍFICOS DE INDEX.HTML
 console.log('Current pathname:', window.location.pathname);
 console.log('Is index page:', isIndexPage);
 
 if (isIndexPage) {
   console.log('Executing index-specific effects...');
+  
+  // Definir accent color para efectos de índice
+  const accentColor = '#0d6efd';
   
   // Verificar que el elemento fijo existe
   const fijoElement = document.querySelector('#fijo');
@@ -812,19 +867,23 @@ if (isIndexPage) {
 // ARROW OPACITY (más rápida en móvil)
 if (document.querySelector('.header-down-arrow')) {
   const isMobile = window.innerWidth <= 768;
-  gsap.fromTo('.header-down-arrow',
-    { opacity: 1 },
-    {
-      opacity: 0,
-      ease: 'none',
-      scrollTrigger: {
-        trigger: scrollTriggerRoot,
-        start: 'top 0%',
-        end: isMobile ? '5%' : '35%', // más rápido en móvil
-        scrub: true
+  if (isMobile) {
+    gsap.set('.header-down-arrow', { opacity: 1 });
+  } else {
+    gsap.fromTo('.header-down-arrow',
+      { opacity: 1 },
+      {
+        opacity: 0,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: scrollTriggerRoot,
+          start: 'top 0%',
+          end: '35%',
+          scrub: true
+        }
       }
-    }
-  );
+    );
+  }
 }
 
 
@@ -925,6 +984,27 @@ if (document.querySelector('.container')) {
   );
 }
 
+// Fade background back to start color after bubbles (reversible with scrub)
+// Only applies on desktop (>768px)
+if (window.innerWidth > 768 && document.querySelector('.container')) {
+  gsap.fromTo(document.documentElement, 
+    { '--bg': accentColor },
+    { 
+      ease: "none",
+      immediateRender: false,
+      scrollTrigger: {
+        trigger: ".container",
+        start: "bottom 80%",
+        end: "bottom 20%",
+        scrub: true
+      }
+    }
+  );
+}
+
+
+
+
 // ESTRELLA SCROLL
 
 gsap.registerPlugin(ScrollTrigger);
@@ -969,7 +1049,7 @@ if (svg) {
     let hasBeenPinned = false;
     let typewriterScrollTrigger = ScrollTrigger.create({
       trigger: ".content4",
-      start: () => window.matchMedia('(max-width: 768px)').matches ? 'top top' : 'top 10%',
+      start: () => window.matchMedia('(max-width: 768px)').matches ? 'top 30%' : 'top 10%',
       end: () => {
         const chars = fullText.length;
         return `+=${Math.max(400, chars * 20)}`;
@@ -1019,7 +1099,7 @@ if (svg) {
 } // FIN DE EFECTOS ESPECÍFICOS DE INDEX.HTML
 
 // Refresh ScrollTrigger después de inicialización
-if (typeof ScrollTrigger !== 'undefined' && enableScrollEffects) {
+if (typeof ScrollTrigger !== 'undefined') {
   // Refresh after smoother so pins/triggers recalc correctly
   setTimeout(() => ScrollTrigger.refresh(), 0);
 

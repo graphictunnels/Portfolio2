@@ -55,6 +55,9 @@
     margin-left: auto;
     margin-right: auto;
   }
+  .scroll-down {
+    position: relative;
+  }
 }
 #carouselRow5Col2 .carousel-inner,
 #carouselRow5Col2 .carousel-item {
@@ -1183,6 +1186,10 @@ a:visited,
   display: none;
 }
 @media (max-width: 768px) {
+  #smooth-content {
+    position: relative;
+  }
+
   .mobile-run4-gif-container {
     display: flex;
     position: absolute;
