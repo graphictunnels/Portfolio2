@@ -1,3 +1,5 @@
+console.log('script.js cargado');
+
 // Handles loading the events for <model-viewer>'s slotted progress bar
 const onProgress = (event) => {
   const progressBar = event.target.querySelector('.progress-bar');
@@ -208,23 +210,37 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 // === CARGA DINÁMICA DE CONTENIDO SEGÚN IDIOMA ===
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOMContentLoaded disparado - IDIOMAS');
 
   // Estado de idioma: 'en' o 'es'. Por defecto, inglés.
   let currentLang = 'en';
 
   // Detectar página actual
   const page = document.body.dataset.page || '';
+  console.log('Página detectada:', page, 'Botones de idioma:', document.getElementById('btn-es-index') ? 'SÍ' : 'NO');
 
   // Cargar idioma desde localStorage si existe
   if (localStorage.getItem('portfolioLang')) {
     currentLang = localStorage.getItem('portfolioLang');
   }
+  console.log('Idioma actual:', currentLang);
 
   function loadLanguage(lang) {
     const jsonFile = lang === 'es' ? 'index-es.json' : 'index.json';
+    console.log('Intentando cargar archivo:', jsonFile);
+    
     fetch(jsonFile)
-      .then(res => res.json())
+      .then(res => {
+        console.log('Respuesta del fetch:', res, 'Status:', res.status);
+        if (!res.ok) {
+          throw new Error(`Failed to load ${jsonFile} - Status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
+        console.log('JSON cargado exitosamente:', data);
+        console.log('Ido antes:', document.getElementById('fijo')?.textContent);
+        console.log('Ido a cargar:', data.main.ido);
         // MENÚ
         const menuTexts = document.querySelectorAll('.menu-link-text');
         const menuScrolls = document.querySelectorAll('.menu-link-scroll');
@@ -273,8 +289,24 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if(document.querySelector('#copyEmailBtn .label')) document.querySelector('#copyEmailBtn .label').innerHTML = data.footer.copyEmail + '<span class="email-text"> ' + data.footer.copyEmailLabel + '</span>';
         // MAIN
-        if(document.querySelector('.subtitular')) document.querySelector('.subtitular').textContent = data.main.subtitle;
-        if(document.getElementById('fijo')) document.getElementById('fijo').textContent = data.main.ido;
+        console.log('=== ACTUALIZANDO CONTENIDO MAIN ===');
+        if(document.querySelector('.subtitular')) {
+          console.log('ANTES .subtitular:', document.querySelector('.subtitular').textContent);
+          document.querySelector('.subtitular').textContent = data.main.subtitle;
+          console.log('DESPUÉS .subtitular:', document.querySelector('.subtitular').textContent);
+        }
+        
+        // Guardar el texto en variable global para que el typewriter lo use
+        console.log('Guardando en window.indexMainIdo:', data.main.ido);
+        window.indexMainIdo = data.main.ido;
+        
+        // IMPORTANTE: Reiniciar el typewriter con el nuevo texto
+        console.log('Llamando a setupTypewriterTrigger con nuevo texto');
+        if (typeof setupTypewriterTrigger === 'function') {
+          setupTypewriterTrigger();
+        } else {
+          console.warn('setupTypewriterTrigger no está definida');
+        }
         // Lista de skills
         const skillsList = document.querySelectorAll('.content4 ul.youcan li');
         if(skillsList && data.main.skills && skillsList.length === data.main.skills.length) {
@@ -283,21 +315,25 @@ document.addEventListener('DOMContentLoaded', function() {
         // MISC
         // NO cambiar la flecha animada, solo el texto de "vibe with me" si existe
         if(document.querySelector('.bubble-vibe')) document.querySelector('.bubble-vibe').textContent = data.misc.vibeWithMe;
+        // Actualizar botones activos
+        if(document.getElementById('btn-eng')) {
+          document.getElementById('btn-eng').classList.toggle('idioma-btn--active', lang === 'en');
+        }
+        if(document.getElementById('btn-es')) {
+          document.getElementById('btn-es').classList.toggle('idioma-btn--active', lang === 'es');
+        }
+        // Botones de idioma para index.html
+        if(document.getElementById('btn-eng-index')) {
+          document.getElementById('btn-eng-index').classList.toggle('idioma-btn--active', lang === 'en');
+        }
+        if(document.getElementById('btn-es-index')) {
+          document.getElementById('btn-es-index').classList.toggle('idioma-btn--active', lang === 'es');
+        }
+      })
+      .catch(error => {
+        console.error('ERROR al cargar JSON:', error.message);
+        console.error('Stack:', error.stack);
       });
-    // Actualizar botones activos
-    if(document.getElementById('btn-eng')) {
-      document.getElementById('btn-eng').classList.toggle('idioma-btn--active', lang === 'en');
-    }
-    if(document.getElementById('btn-es')) {
-      document.getElementById('btn-es').classList.toggle('idioma-btn--active', lang === 'es');
-    }
-      // Botones de idioma para index.html
-      if(document.getElementById('btn-eng-index')) {
-        document.getElementById('btn-eng-index').classList.toggle('idioma-btn--active', lang === 'en');
-      }
-      if(document.getElementById('btn-es-index')) {
-        document.getElementById('btn-es-index').classList.toggle('idioma-btn--active', lang === 'es');
-      }
   }
 
   // Inicializar idioma
@@ -334,6 +370,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if(document.getElementById('btn-es-index')) {
       document.getElementById('btn-es-index').addEventListener('click', function() {
+        console.log('Botón ESP clickeado! Cambiando idioma a ES');
         if(currentLang !== 'es') {
           currentLang = 'es';
           localStorage.setItem('portfolioLang', 'es');
@@ -1030,69 +1067,84 @@ if (svg) {
   // ELEMENTO FIJO SCROLL
   // Dynamic end: pin until the 5th <li> ends (fallback to last)
   console.log('Setting up content4 pin...');
-  const content4Element = document.querySelector('.content4');
-  const fijoPin = document.querySelector('#fijo');
-  if (content4Element && fijoPin) {
-    // Typewriter scroll animation
-    let fullText = '';
-    if (window.indexMainIdo) {
-      fullText = window.indexMainIdo;
-    } else {
-      fullText = "I do UX/UI design, graphic design, web development, motion graphics, 3D modelling and videogame design.";
-    }
-    // Siempre empieza vacío e invisible
-    fijoPin.textContent = '';
-    fijoPin.style.opacity = '0';
-    
-    let lastProgress = 0;
-    let isPinned = false;
-    let hasBeenPinned = false;
-    let typewriterScrollTrigger = ScrollTrigger.create({
-      trigger: ".content4",
-      start: () => window.matchMedia('(max-width: 768px)').matches ? 'top 30%' : 'top 10%',
-      end: () => {
-        const chars = fullText.length;
-        return `+=${Math.max(400, chars * 20)}`;
-      },
-      pin: "#fijo",
-      scrub: true,
-      markers: false,
-      invalidateOnRefresh: true,
-      onUpdate: self => {
-        // Solo escribe si está pineado
-        if (isPinned) {
-          const progress = self.progress;
-          if (progress !== lastProgress) {
-            const charsToShow = Math.floor(progress * fullText.length);
-            fijoPin.textContent = fullText.slice(0, charsToShow);
-            fijoPin.style.opacity = charsToShow > 0 ? '1' : '0';
-            lastProgress = progress;
+  let typewriterScrollTrigger = null; // Declarar globalmente para poder actualizar
+  let fullText = 'I do UX/UI design, graphic design, web development, motion graphics, 3D modelling and videogame design.';
+  let lastProgress = 0;
+  let isPinned = false;
+  let hasBeenPinned = false;
+  
+  function setupTypewriterTrigger() {
+    const content4Element = document.querySelector('.content4');
+    const fijoPin = document.querySelector('#fijo');
+    if (content4Element && fijoPin) {
+      // Actualizar fullText con el valor global (que puede cambiar con idioma)
+      if (window.indexMainIdo) {
+        fullText = window.indexMainIdo;
+      }
+      
+      // Matar el trigger anterior si existe
+      if (typewriterScrollTrigger) {
+        typewriterScrollTrigger.kill();
+      }
+      
+      // Siempre empieza vacío e invisible
+      fijoPin.textContent = '';
+      fijoPin.style.opacity = '0';
+      
+      lastProgress = 0;
+      isPinned = false;
+      hasBeenPinned = false;
+      
+      typewriterScrollTrigger = ScrollTrigger.create({
+        trigger: ".content4",
+        start: () => window.matchMedia('(max-width: 768px)').matches ? 'top 30%' : 'top 10%',
+        end: () => {
+          const chars = fullText.length;
+          return `+=${Math.max(400, chars * 20)}`;
+        },
+        pin: "#fijo",
+        scrub: true,
+        markers: false,
+        invalidateOnRefresh: true,
+        onUpdate: self => {
+          // Solo escribe si está pineado
+          if (isPinned) {
+            const progress = self.progress;
+            if (progress !== lastProgress) {
+              const charsToShow = Math.floor(progress * fullText.length);
+              fijoPin.textContent = fullText.slice(0, charsToShow);
+              fijoPin.style.opacity = charsToShow > 0 ? '1' : '0';
+              lastProgress = progress;
+            }
+            if (progress >= 1) {
+              fijoPin.textContent = fullText;
+              fijoPin.style.opacity = '1';
+            }
+            if (progress === 0) {
+              fijoPin.textContent = '';
+              fijoPin.style.opacity = '0';
+            }
           }
-          if (progress >= 1) {
-            fijoPin.textContent = fullText;
-            fijoPin.style.opacity = '1';
-          }
-          if (progress === 0) {
+        },
+        onToggle: self => {
+          isPinned = self.isActive;
+          if (isPinned) {
+            // Empieza a escribir desde cero
+            hasBeenPinned = true;
             fijoPin.textContent = '';
             fijoPin.style.opacity = '0';
+            lastProgress = 0;
+          } else {
+            // Al terminar el pin, mantener el estado del texto del último progreso
+            // Sin cambiar nada para que no aparezca cuando sale del trigger
           }
         }
-      },
-      onToggle: self => {
-        isPinned = self.isActive;
-        if (isPinned) {
-          // Empieza a escribir desde cero
-          hasBeenPinned = true;
-          fijoPin.textContent = '';
-          fijoPin.style.opacity = '0';
-          lastProgress = 0;
-        } else {
-          // Al terminar el pin, mantener el estado del texto del último progreso
-          // Sin cambiar nada para que no aparezca cuando sale del trigger
-        }
-      }
-    });
+      });
+    }
   }
+  
+  // Inicializar el typewriter
+  setupTypewriterTrigger();
 
 }
 
