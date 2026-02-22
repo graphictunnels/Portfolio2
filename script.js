@@ -367,18 +367,10 @@ if ('scrollRestoration' in history) {
   history.scrollRestoration = 'manual';
 }
 
-// Forzar scroll al top al cargar la página
-window.addEventListener('beforeunload', function() {
-  window.scrollTo(0, 0);
-});
-
 window.addEventListener('load', function() {
-  window.scrollTo(0, 0);
-});
-
-// También al cambiar de página
-document.addEventListener('DOMContentLoaded', function() {
-  window.scrollTo(0, 0);
+  if (!window.location.hash) {
+    window.scrollTo(0, 0);
+  }
 });
 
 // Navegación unificada (siempre hace fade-in antes de navegar)
@@ -442,11 +434,14 @@ console.log('ScrollSmoother loaded?', typeof ScrollSmoother !== 'undefined');
 
 if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
+  ScrollTrigger.defaults({ invalidateOnRefresh: true });
 }
 
 // Re-enable ScrollSmoother with safe gating
 let smoother;
+const isMobileViewport = window.matchMedia('(max-width: 768px)').matches;
 const shouldUseSmoother =
+  !isMobileViewport &&
   typeof gsap !== 'undefined' &&
   typeof ScrollSmoother !== 'undefined' &&
   !!document.querySelector('#smooth-wrapper') &&
@@ -477,7 +472,7 @@ if (shouldUseSmoother) {
   }
 }
 
-const scrollTriggerRoot = '#smooth-wrapper';
+const scrollTriggerRoot = isMobileViewport ? document.body : '#smooth-wrapper';
 const isIndexPage =
   document.body?.dataset?.page === 'index' ||
   /(?:^|\/)index(?:-es)?\.html$/i.test(window.location.pathname) ||
@@ -732,7 +727,9 @@ function updateListOpacities() {
 }
 
 // Start the opacity update loop
-updateListOpacities();
+if (!isMobileViewport) {
+  updateListOpacities();
+}
 
 
 
@@ -1027,7 +1024,7 @@ if (svg) {
     let hasBeenPinned = false;
     let typewriterScrollTrigger = ScrollTrigger.create({
       trigger: ".content4",
-      start: () => window.matchMedia('(max-width: 768px)').matches ? 'top 30%' : 'top 10%',
+      start: () => window.matchMedia('(max-width: 768px)').matches ? 'top top' : 'top 10%',
       end: () => {
         const chars = fullText.length;
         return `+=${Math.max(400, chars * 20)}`;
