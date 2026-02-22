@@ -2826,12 +2826,16 @@ section {
     flex-direction: column;
     gap: 1rem;
     padding-bottom: 0.5rem;
+    margin-top: 2rem;
+    background-color: var(--accent);
   }
   .contactame {
     order: 1;
+    color: white;
   }
   .colofon {
     order: 2;
+    color: white;
   }
 
   /* Menú navegación */
@@ -2943,9 +2947,16 @@ section {
     font-size: 1.1rem;
     gap: 0.6rem;
     border-radius: 999px;
+    color: white;
+    border-color: white;
+  }
+  .copy-email-btn:hover {
+    background: white;
+    color: #4285f4;
   }
   .copy-email-btn .icon {
     font-size: 1.5rem;
+    color: white;
   }
 }
 
